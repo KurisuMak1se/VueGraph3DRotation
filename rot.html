@@ -1,0 +1,490 @@
+<html>
+	<head>
+		<title>Вращение декартовых осей</title>
+	</head>
+	
+	<body>
+		<script src="https://cdn.jsdelivr.net/npm/vue@2.7.8/dist/vue.js"></script>
+	
+		<div id="app" 
+			 style="display: block;margin-left: auto;margin-right: auto; justify-content: center;">
+	
+			<label>Регулирование масштаба: </label>
+			<button @click="Decrease" style="width: 30px;">-</button>
+			<button @click="ZoomIn" style="width: 30px;">+</button>
+			<label> Масштаб: {{cAx * 10}}%</label>
+        
+			<svg 	@load="mathGeneral" 
+					style="display:block; background-color: white; border: 3px solid black; border-radius: 15px;margin-left: auto;margin-right: auto;display:block"
+					:width="W"
+					:height="H">								
+				<line 	id="linex" 
+						style="stroke:black; stroke-width:3" 
+						:x1="matrixAxDispCord[0][0]" 
+						:y1="matrixAxDispCord[0][1]" 
+						:x2="matrixAxDispCord[1][0]" 
+						:y2="matrixAxDispCord[1][1]"></line>
+						
+				<line 	id="liney" 
+						style="stroke:black; stroke-width:3" 
+						:x1="matrixAxDispCord[2][0]" 
+						:y1="matrixAxDispCord[2][1]" 
+						:x2="matrixAxDispCord[3][0]" 
+						:y2="matrixAxDispCord[3][1]"></line>
+						
+				<line 	id="linez" 
+						style="stroke:black; stroke-width:3" 
+						:x1="matrixAxDispCord[4][0]" 
+						:y1="matrixAxDispCord[4][1]" 
+						:x2="matrixAxDispCord[5][0]" 
+						:y2="matrixAxDispCord[5][1]"></line>
+						
+				<text 	id="X" 
+						style="font:bold 20px large, caption"
+						:x="matrixAxDispCord[1][0]" 
+						:y="matrixAxDispCord[1][1]">X</text>
+						
+				<text 	id="Y" 
+						style="font:bold 20px large, caption"
+						:x="matrixAxDispCord[3][0]" 
+						:y="matrixAxDispCord[3][1]">Y</text>
+				
+				<text 	id="Z" 
+						style="font:bold 20px large, caption"
+						:x="matrixAxDispCord[5][0]" 
+						:y="matrixAxDispCord[5][1]">Z</text>
+			</svg>
+			
+			<div style="display:flex;">
+		
+				<p style="width: 200px;">Угол наклона X={{rotX}}</p>
+				<input type="range" v-model="rotateX" style="width: 300px;" min="0" max="360" step="1">
+				<p style="width: 200px;">Угол наклона Y={{rotY}}</p>
+				<input type="range" v-model="rotateY" style="width: 300px;" min="0" max="360" step="1">
+				<p style="width: 220px;">Угол наклона Z={{rotZ}} </p>
+				<input type="range" v-model="rotateZ" style="width: 300px;" min="0" max="360" step="1">
+			</div>
+		</div>
+	
+		<script>
+			var RoT = new Vue({
+				el: "#app",
+				data: 
+				{ 
+					MatrixOne:  [
+									[1, 0, 0, 0], 
+									[0, 1, 0, 0], 
+									[0, 0, 1, 0], 
+									[0, 0, 0, 1]
+								],
+                
+					cAx: 10,
+                
+					matrixAxEndCord: 	[
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0]
+										],
+                
+					matrixAsDecCodr: 	[
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0]
+										],
+                
+					matrixAxDispCord: 	[
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0]
+										],
+                
+					freemtx: 	[
+									[0, 0, 0, 0], 
+									[0, 0, 0, 0], 
+									[0, 0, 0, 0], 
+									[0, 0, 0, 0]
+								],
+                
+					RotX: false,
+					RotY: false,
+					RotZ: false,
+                
+					matrixGentr: 	[
+										[0, 0, 0, 0], 
+										[0, 0, 0, 0], 
+										[0, 0, 0, 0], 
+										[0, 0, 0, 0]
+									],
+					oneplay: true,
+					
+					H: 600,
+					W: 600,
+                
+					degSt: Math.PI / 180,
+					
+					rotX: 0,
+					rotY: 0,
+					rotZ: 0,
+					
+					ml: 0,
+					mm: 0,
+					mn: 0,
+					ms: 1,
+				},
+				computed:
+				{
+					rotateX:
+					{
+						get: function () { return this.rotX; },
+						set: function (newVal) 
+						{
+							this.mtxNormalize(this.matrixAxTrRotX);
+							
+							this.rotX = newVal;
+							this.matrixAxTrRotX[1][1] = Math.cos(this.degSt * this.rotX);
+							this.matrixAxTrRotX[1][2] = Math.sin(this.degSt * this.rotX);
+							this.matrixAxTrRotX[2][1] = -Math.sin(this.degSt * this.rotX);
+							this.matrixAxTrRotX[2][2] = Math.cos(this.degSt * this.rotX);
+							this.RotX = true;
+							this.mathGeneral();
+						}				
+					},
+			
+					rotateY: 
+					{
+						get: function () { return this.rotY; },
+						set: function (newVal) 
+						{
+							this.mtxNormalize(this.matrixAxTrRotY);
+						
+							this.rotY = newVal;
+							this.matrixAxTrRotY[0][0] = Math.cos(this.degSt * this.rotY);
+							this.matrixAxTrRotY[0][2] = -Math.sin(this.degSt * this.rotY);
+							this.matrixAxTrRotY[2][0] = Math.sin(this.degSt * this.rotY);
+							this.matrixAxTrRotY[2][2] = Math.cos(this.degSt * this.rotY);
+							this.RotY = true;
+							this.mathGeneral();
+						}
+					},			
+			
+					rotateZ: 
+					{
+						get: function () { return this.rotZ; },
+						set: function (newVal) 
+						{
+							this.mtxNormalize(this.matrixAxTrRotZ);					
+					
+							this.rotZ = newVal;
+							this.matrixAxTrRotZ[0][0] = Math.cos(this.degSt * this.rotZ);
+							this.matrixAxTrRotZ[0][1] = Math.sin(this.degSt * this.rotZ);
+							this.matrixAxTrRotZ[1][0] = -Math.sin(this.degSt * this.rotZ);
+							this.matrixAxTrRotZ[1][1] = Math.cos(this.degSt * this.rotZ);
+							this.RotZ = true;
+							this.mathGeneral();						
+						}
+					},
+				
+					matrixAxStartCord: function () 
+					{
+						return  [
+									[-this.cAx, 0, 0, 1], 
+									[this.cAx, 0, 0, 1],
+									[0, -this.cAx, 0, 1], 
+									[0, this.cAx, 0, 1], 
+									[0, 0, -this.cAx, 1], 
+									[0, 0, this.cAx, 1]
+								]
+					},
+				
+					mmw: 
+					{
+						get: function () { return this.W / (2 * (this.cAx + 1)) },
+						set: function () { this.W / (2 * (this.cAx + 1)) },                    
+					},
+				
+					mmh: 
+					{
+						get: function () { return this.H / (2 * (this.cAx + 1)) },
+						set: function () { this.H / (2 * (this.cAx + 1)) },
+					},
+				
+					matrixTransf: function () 
+					{
+						return 	[
+									[1, 0, 0, 0], 
+									[0, 1, 0, 0], 
+									[0, 0, 1, 0], 
+									[this.ml, this.mm, this.mn, this.ms]
+								]
+					},
+				
+					matrixAxTrRotX: function () 
+					{
+                        return 	[
+									[1, 0, 0, 0],
+									[0, Math.cos(this.degSt * this.rotX), Math.sin(this.degSt * this.rotX), 0],
+									[0, -Math.sin(this.degSt * this.rotX), Math.cos(this.degSt * this.rotX), 0],
+									[0, 0, 0, 1]
+								]
+					},
+				
+					matrixAxTrRotZ: function () 
+					{
+                        return 	[
+									[Math.cos(this.degSt * this.rotZ), Math.sin(this.degSt * this.rotZ), 0, 0],
+									[-Math.sin(this.degSt * this.rotZ), Math.cos(this.degSt * this.rotZ), 0, 0],
+									[0, 0, 1, 0],
+									[0, 0, 0, 1]
+								]
+					},
+				
+					matrixAxTrRotY: function () 
+					{
+                        return 	[
+									[Math.cos(this.degSt * this.rotY), 0, -Math.sin(this.degSt * this.rotY), 0],
+									[0, 1, 0, 0],
+									[Math.sin(this.degSt * this.rotY), 0, Math.cos(this.degSt * this.rotY), 0],
+									[0, 0, 0, 1]
+								]
+					},
+				},
+
+			
+				methods: 
+				{
+					mtxNormalize: function (mtx)
+					{
+						var opmtx = [
+										[0, 0, 0, 0], 
+										[0, 0, 0, 0], 
+										[0, 0, 0, 0], 
+										[0, 0, 0, 0]
+									];
+									
+						var sosmtx = 	[
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0], 
+											[0, 0, 0, 0]
+										];
+						
+						this.delmtx(mtx, sosmtx, opmtx);	
+
+						for (i in this.freemtx) 
+							for (j in this.freemtx[0]) 
+								this.freemtx[i][j] = this.matrixGentr[i][j];
+						
+						this.multyplymtx(opmtx, this.freemtx, this.matrixGentr);						
+					},
+			
+					mathGeneral: function () 
+					{
+						this.createGeneralTransfMx();
+						this.matrixTransFormation();
+						this.homogToDec(this.matrixAxEndCord, this.matrixAsDecCodr);
+						this.calculateDisCord(this.matrixAxDispCord, this.matrixAsDecCodr);
+					},
+				
+					createGeneralTransfMx: function () 
+					{
+						var mtx;
+					
+						mtx = 	[
+									[0, 0, 0, 0], 
+									[0, 0, 0, 0], 
+									[0, 0, 0, 0], 
+									[0, 0, 0, 0]
+								];
+                    
+						if (this.oneplay) 
+						{
+							this.multyplymtx(this.matrixAxTrRotY, this.matrixAxTrRotX, mtx);
+							this.multyplymtx(mtx, this.MatrixOne, this.matrixGentr);
+							this.oneplay = false;
+						}
+					
+						if (this.RotY) 
+						{
+							this.multyplymtx(this.matrixAxTrRotY, this.matrixGentr, mtx);
+							this.multyplymtx(mtx, this.MatrixOne, this.matrixGentr);
+							this.RotY = false;
+						}
+					
+						if (this.RotZ) 
+						{
+							this.multyplymtx(this.matrixAxTrRotZ, this.matrixGentr, mtx);
+							this.multyplymtx(mtx, this.MatrixOne, this.matrixGentr);
+							this.RotZ = false;
+						}
+					
+						if (this.RotX) 
+						{
+							this.multyplymtx(this.matrixAxTrRotX, this.matrixGentr, mtx);
+							this.multyplymtx(mtx, this.MatrixOne, this.matrixGentr);
+							this.RotX = false;
+						}
+					},
+				
+					multyplymtx: function (mtx1, mtx2, rezmtx) 
+					{
+						var i, j, r;
+					
+						for (i in rezmtx) 
+							for (j in rezmtx[0]) 
+								rezmtx[i][j] = 0;
+					
+						for (i in rezmtx) 
+							for (j in rezmtx[0]) 
+								for (r in rezmtx[0]) 
+									rezmtx[i][j] = rezmtx[i][j] + mtx1[i][r] * mtx2[r][j];
+					},
+				
+					matrixTransFormation: function () 
+					{
+						this.multyplymtx(this.matrixAxStartCord, this.matrixGentr, this.matrixAxEndCord);
+					},
+				
+					homogToDec: function (endCord, decCord) 
+					{
+						var mi;
+						var mj;
+						
+						for (mi in endCord)
+							for (mj in endCord[0]) 
+								if (endCord[mi][3] != 1) 
+								{
+									if (endCord[mi][3] == 0) 
+										endCord[mi][3] = 0.01;
+									else 
+										decCord[mi][mj] = endCord[mi][mj] / endCord[mi][3];
+								}
+								else 
+									decCord[mi][mj] = endCord[mi][mj];
+					},
+				
+					calculateDisCord: function (mDisp, mDek) 
+					{
+						var i, j;
+					
+						for (i in mDek) 
+							for (j in mDek[0]) 
+							{
+								if (j == 0) 
+									mDisp[i][0] = (this.W / 2 + (this.mmw * mDek[i][j]));
+								
+								if (j == 1) 
+									mDisp[i][1] = (this.W / 2 - (this.mmh * mDek[i][j]));
+							
+								mDisp[i][0] = Math.round(mDisp[i][0]);
+								mDisp[i][1] = Math.round(mDisp[i][1]);
+							}							
+					},
+				
+					delmtx: function (mtx, trmtx, rezmtx) 
+					{
+						var roll = 0, k, rn = 0, cn = 0;
+						var step = 2;
+						var v, l;
+						var mtx3 =  [
+										[0, 0, 0], 
+										[0, 0, 0], 
+										[0, 0, 0]
+									];
+					
+						k = mtx[0][0] * (mtx[1][1] * (mtx[2][2] * mtx[3][3] - mtx[2][3] * mtx[3][2]) - mtx[1][2] * (mtx[2][1] * mtx[3][3] - mtx[2][3] * mtx[3][1]) + mtx[1][3] * (mtx[2][1] * mtx[3][2] - mtx[2][2] * mtx[3][1]));
+						
+						k -= mtx[0][1] * (mtx[1][0] * (mtx[2][2] * mtx[3][3] - mtx[2][3] * mtx[3][2]) - mtx[1][2] * (mtx[2][0] * mtx[3][3] - mtx[2][3] * mtx[3][0]) + mtx[1][3] * (mtx[2][0] * mtx[3][2] - mtx[2][2] * mtx[3][0]));
+                    
+						k += mtx[0][2] * (mtx[1][0] * (mtx[2][1] * mtx[3][3] - mtx[2][3] * mtx[3][1]) - mtx[1][1] * (mtx[2][0] * mtx[3][3] - mtx[2][3] * mtx[3][0]) + mtx[1][3] * (mtx[2][0] * mtx[3][1] - mtx[2][1] * mtx[3][0]));
+                    
+						k -= mtx[0][3] * (mtx[1][0] * (mtx[2][1] * mtx[3][2] - mtx[2][2] * mtx[3][1]) - mtx[1][1] * (mtx[2][0] * mtx[3][2] - mtx[2][2] * mtx[3][0]) + mtx[1][2] * (mtx[2][0] * mtx[3][1] - mtx[2][1] * mtx[3][0]));
+                    
+						for (i in trmtx) 
+						{
+							v = parseInt(i);
+							for (j in trmtx[0]) 
+							{
+								l = parseInt(j);
+								step = l + v + 2;
+								trmtx[i][j] = Math.pow(-1, step);
+								
+								for (s in mtx3)
+								{
+									if (s == i) 
+										rn++;
+                                
+									cn = 0;
+                                
+									for (r in mtx3[0]) 
+									{
+										if (r == j) 
+											cn++;
+
+										mtx3[s][r] = mtx[rn][cn];
+										cn++;
+									}
+									rn++;
+								}
+								
+								for (var c3 = 0; c3 < 3; c3++) 
+								{
+									if (c3 == 0) 
+										roll += mtx3[0][0] * (mtx3[1][1] * mtx3[2][2] - mtx3[1][2] * mtx3[2][1]);
+									else
+									{
+										if (c3 == 1) 
+											roll -= mtx3[0][1] * (mtx3[1][0] * mtx3[2][2] - mtx3[1][2] * mtx3[2][0]);
+										else 
+											roll += mtx3[0][2] * (mtx3[1][0] * mtx3[2][1] - mtx3[1][1] * mtx3[2][0]);
+									}
+								}
+							
+								trmtx[i][j] *= roll;
+								roll = 0;
+								cn = 0;
+								rn = 0;
+							}
+                        }
+					
+						for (i in rezmtx) 
+							for (j in rezmtx[0]) 
+								rezmtx[i][j] = trmtx[j][i] / k;
+					},	
+					ZoomIn: function () 
+					{
+						if (this.cAx != 20) 
+						{
+							this.cAx++;
+							this.mathGeneral();
+						}
+					},
+				
+					Decrease: function () 
+					{
+						if (this.cAx != 1) 
+						{
+							this.cAx--;
+							this.mathGeneral();
+						}
+					},
+				},
+				beforeUpdate(){
+
+				},
+				created: function () 
+				{
+					this.mathGeneral();
+				}
+			})
+		</script>
+	</body>
+</html>
